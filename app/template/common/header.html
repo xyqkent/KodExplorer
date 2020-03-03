@@ -34,6 +34,13 @@
 			}else{
 				$background = "url('{$background}')";
 			}
+			$pic = json_decode(file_get_contents("https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1"),true);
+			$background = "url('https://cn.bing.com{$pic["images"][0]["url"]}')";
 			return "<style type='text/css'>.aero:before,.aero:after,.background{background-color:#bbb;background-image:{$background};}</style>\n";
+		}
+		function getcopyright(){
+			$pic = json_decode(file_get_contents("https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1"),true);
+			$copyright = $pic["images"][0]["copyright"];
+			return $copyright;
 		}
 	?>
