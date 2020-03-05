@@ -9,6 +9,7 @@
 class explorer extends Controller{
 	public $path;
 	public $user;
+	public $redis;
 	public function __construct(){
 		parent::__construct();
 		$this->user = $_SESSION['kodUser'];
@@ -28,6 +29,8 @@ class explorer extends Controller{
 			$this->path = _DIR($this->in['path']);
 			$this->_checkSystemPath();
 		}
+		$this->$redis = new Redis();    
+		$this->$redis->connect('/opt/var/run/redis.sock');
 	}
 	public function index(){
 		$dir = '';
@@ -246,6 +249,7 @@ class explorer extends Controller{
 			$this->_selfGroupLoad($list['folderList']);
 		}
 		$list['userSpace'] = $this->user['config'];
+		$this->$redis->ltrim('image',0,0);//每次获取文件夹列表，清空一次缩略图生成
 		show_json($list);
 	}
 
@@ -1064,10 +1068,11 @@ class explorer extends Controller{
 		}
 	}
 	//缩略图
+	
 	public function image(){
 		$thumbWidth = 250;
 		if(isset($this->in['thumbWidth'])){
-			$thumbWidth = intval($this->in['thumbWidth']);//自定义预览大图
+			$thumbWidth = intval($this->in['thumbWidth']);//自定义预览大图			
 		}
 		if(substr($this->path,0,4) == 'http'){
 			header('Location: '.$this->in['path']);
@@ -1087,19 +1092,33 @@ class explorer extends Controller{
 		if (strlen($imageMd5)<5) {
 			$imageMd5 = md5($image).'_'.$thumbWidth;
 		}
-		$imageThumb = DATA_THUMB.$imageMd5.'.png';
+		$imageThumb = DATA_THUMB.$imageMd5.'.jpg';
 		if (!file_exists($imageThumb)){//如果拼装成的url不存在则没有生成过
 			if (get_path_father($image)==DATA_THUMB){//当前目录则不生成缩略图
 				$imageThumb=$this->path;
 			}else {
-				$cm = new ImageThumb($image,'file');
-				$cm->prorate($imageThumb,$thumbWidth,$thumbWidth);//生成等比例缩略图
+				if($thumbWidth>300){
+					// $imageThumb=$this->path;
+					$cm = new ImageThumb($image,'file');
+					$cm->prorate($imageThumb,$thumbWidth,$thumbWidth);//生成等比例缩略图
+				}else{
+					$image_json = array("image"=>$image,"imageThumb"=>$imageThumb,"thumbWidth"=>$thumbWidth);
+					$image_json_all = $this->$redis->lrange('image',0,-1);
+					$image_json_all = array_map(function($v){	
+						return json_decode($v,true);
+					},$image_json_all);
+					$image_list = array_column($image_json_all, 'image');	
+					if(!in_array($image,$image_list))
+						$this->$redis->LPUSH('image',json_encode($image_json));
+				}
+				
+				
 			}
 		}
-		if (!file_exists($imageThumb) || 
-			filesize($imageThumb)<100){//缩略图生成失败则使用原图
-			$imageThumb=$this->path;
-		}
+		// if (!file_exists($imageThumb) || 
+		// 	filesize($imageThumb)<100){//缩略图生成失败则使用原图
+		// 	$imageThumb=$this->path;
+		// }
 		file_put_out($imageThumb,false);
 	}
 

@@ -217,8 +217,8 @@ class ImageThumb {
 		ob_get_clean();
 		$result = false;
 		switch ($this->echoType) {
-			case 'link':$result = imagePNG($img);break;
-			case 'file':$result = imagePNG($img, $toFile);break;
+			case 'link':$result = imagejpeg($img);break;
+			case 'file':$result = imagejpeg($img, $toFile);break;
 			//return ImageJpeg($img, $to_File);				
 		}
 		imageDestroy($img);

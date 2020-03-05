@@ -584,8 +584,8 @@ class share extends Controller{
 			filesize($imageThumb)<100){//缩略图生成失败则使用原图
 			$imageThumb=$this->path;
 		}
-		file_put_out($imageThumb,false);
-		file_put_out($imageThumb);//输出
+		// file_put_out($imageThumb,false);
+		// file_put_out($imageThumb);//输出
 	}
 
 	//获取文件列表&哦exe文件json解析
