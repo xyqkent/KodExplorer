@@ -249,8 +249,31 @@ class explorer extends Controller{
 			$this->_selfGroupLoad($list['folderList']);
 		}
 		$list['userSpace'] = $this->user['config'];
-		$this->$redis->ltrim('image',0,0);//每次获取文件夹列表，清空一次缩略图生成
+		//TODO 设置延迟删除
+		$path = $GLOBALS['kodPathPre'];///mnt/NAS/kodcloud_data/Group/public/或者空
+		$realpath = $this->in['path']; //thisPath: "{groupPath}:1/家庭相册/"
+		if($path!=""){
+			$realpath = substr($path,0,strlen($path)-1) . str_replace("{groupPath}:1","",$realpath);
+		}
+		//$list['realpath'] = $realpath;
+		$this->redis_clear();
 		show_json($list);
+	}
+
+	function redis_clear() {
+		$fp=fsockopen('localhost',97,$errno,$errstr,5);
+		if(!$fp){
+			echo "$errstr ($errno)<br />\n";
+		}else{
+			$path = $GLOBALS['kodPathPre'];///mnt/NAS/kodcloud_data/Group/public/或者空
+			$realpath = $this->in['path']; //thisPath: "{groupPath}:1/家庭相册/"
+			if($path!=""){
+				$realpath = substr($path,0,strlen($path)-1) . str_replace("{groupPath}:1","",$realpath);
+			}
+			$userID="u".$this->user['userID']."##";
+			fputs($fp,"GET /redis_clear.php?userID=". urlencode($userID)."&path=".urlencode($realpath)."\r\n"); #请求的资源 URL 一定要写对
+		}
+		fclose($fp);
 	}
 
 	public function treeList(){//树结构
@@ -1084,6 +1107,10 @@ class explorer extends Controller{
 			file_put_out($this->path,false);
 			return;
 		}
+		if (@filesize($this->path) >= 1024*1024*5) {//大于5M直接输出图片太大无法缓存
+			file_put_out(BASIC_PATH."static/images/file_icon/icon_file/picture_max.png",false);
+			return;
+		}
 		if (!is_dir(DATA_THUMB)){
 			mk_dir(DATA_THUMB);
 		}
@@ -1102,14 +1129,16 @@ class explorer extends Controller{
 					$cm = new ImageThumb($image,'file');
 					$cm->prorate($imageThumb,$thumbWidth,$thumbWidth);//生成等比例缩略图
 				}else{
+					$userID = "u".$this->user["userID"]."##".get_path_father($image);
+					$this->$redis->sAdd("userID",$userID);
 					$image_json = array("image"=>$image,"imageThumb"=>$imageThumb,"thumbWidth"=>$thumbWidth);
-					$image_json_all = $this->$redis->lrange('image',0,-1);
-					$image_json_all = array_map(function($v){	
+					$image_json_all = $this->$redis->lrange($userID,0,-1);
+					$image_json_all = array_map(function($v){
 						return json_decode($v,true);
 					},$image_json_all);
 					$image_list = array_column($image_json_all, 'image');	
 					if(!in_array($image,$image_list))
-						$this->$redis->LPUSH('image',json_encode($image_json));
+						$this->$redis->LPUSH($userID,json_encode($image_json));
 				}
 				
 				

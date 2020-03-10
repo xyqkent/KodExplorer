@@ -5543,28 +5543,38 @@ define("app/src/explorer/fileContent", ["../../path/tpl/file/list.html"], functi
             ui.fileLight.init(), core.isApp("desktop") && ui.resetDesktopIcon(), "split" == G.userConfig.listType && ui.fileListResize.bindSplitResize(), lazyLoadImage(), iconFlex(), Hook.trigger("explorer.path.ajaxLive")
         },
         lazyLoadImage = function () {
+            // var a = $(".bodymain");
+            // return core.isApp("desktop") ? void a.find(".lazyload-ready").each(function () {
+            //     $(this).attr("src", $(this).attr("data-original")).hide().fadeIn(600), $(this).removeClass("lazyload-ready")
+            // }) : ("split" == G.userConfig.listType && (a = $(".split-box").last().find(".content")), void a.find(".lazyload-ready").lazyload({
+            //     failure_limit: 1,
+            //     threshold: 200,
+            //     placeholder: G.staticPath + "images/common/loading_circle.gif",
+            //     skip_invisible: !1,
+            //     effect: "fadeIn",
+            //     container: a,
+            //     load: function (a, b) {
+            //         $(this).removeClass("lazyload-ready")
+            //     }
+            // }).on("error", function () {
+            //     var a = $(this).data("errorReload");
+            //     if (a) {
+            //         if ("1" == a) {
+            //             $(this).parent().attr("filetype");
+            //             $(this).attr("src", G.staticPath + "images/file_icon/icon_file/picture_error.png"), $(this).data("errorReload", "2")
+            //         }
+            //     } else $(this).attr("src", $(this).attr("src") + "#" + UUID()), $(this).data("errorReload", "1")
+            // }))
             var a = $(".bodymain");
             return core.isApp("desktop") ? void a.find(".lazyload-ready").each(function () {
                 $(this).attr("src", $(this).attr("data-original")).hide().fadeIn(600), $(this).removeClass("lazyload-ready")
-            }) : ("split" == G.userConfig.listType && (a = $(".split-box").last().find(".content")), void a.find(".lazyload-ready").lazyload({
-                failure_limit: 10,
-                threshold: 200,
-                placeholder: G.staticPath + "images/common/loading_circle.gif",
-                skip_invisible: !1,
-                effect: "fadeIn",
-                container: a,
-                load: function (a, b) {
-                    $(this).removeClass("lazyload-ready")
+            }): ("split" == G.userConfig.listType && (a = $(".split-box").last().find(".content")), void a.find(".file").each(function(){
+                var size=parseInt($(this).attr("data-size"));
+                if(size>1024*1024*5){
+                    var img = $(this).find(".picture").find("img");
+                        img.attr("src","../../static/images/file_icon/icon_file/jpg.png")
                 }
-            }).on("error", function () {
-                var a = $(this).data("errorReload");
-                if (a) {
-                    if ("1" == a) {
-                        $(this).parent().attr("filetype");
-                        $(this).attr("src", G.staticPath + "images/file_icon/icon_file/picture_error.png"), $(this).data("errorReload", "2")
-                    }
-                } else $(this).attr("src", $(this).attr("src") + "#" + UUID()), $(this).data("errorReload", "1")
-            }))
+            }));
         },
         iconFlex = function () {
             if (!core.isApp("desktop") && "icon" == G.userConfig.listType) {
@@ -5672,7 +5682,7 @@ define("app/src/explorer/fileContent", ["../../path/tpl/file/list.html"], functi
             if ("string" == $.type(f)) return f;
             if (inArray(["jpg", "jpeg", "png", "bmp", "gif", "ico", "svg", "cur", "webp"], e)) {
                 var g = G.appHost + "explorer/image";
-                return G.sid && (g = G.appHost + "share/image&user=" + G.user + "&sid=" + G.sid), g += "&time=" + strtotime(c.mtime) + "&path=", "<div class='picture ico' filetype='" + e + "'><img class='lazyload-ready' data-original='" + g + htmlEncode(urlEncode(c.path)) + "' draggable='false' ondragstart='return false;'/></div>"
+                return G.sid && (g = G.appHost + "share/image&user=" + G.user + "&sid=" + G.sid), g += "&time=" + strtotime(c.mtime) + "&path=", "<div class='picture ico' filetype='" + e + "'><img class='lazyload-ready' data-original='" + g + htmlEncode(urlEncode(c.path)) + "' src='../../static/images/file_icon/icon_file/picture_error.png' draggable='false' ondragstart='return false;'/></div>"
             }
             if ("app_link" == c.type) {
                 var h = core.icon("folder");
@@ -5689,29 +5699,20 @@ define("app/src/explorer/fileContent", ["../../path/tpl/file/list.html"], functi
         makeHtml = function (a, b, c) {          
             window.clearInterval(clockID)
             clockID = setInterval(function() {
-                $unloadimage = $("img[src='"+G.staticPath + "images/file_icon/icon_file/picture_error.png']");
-                $unloadimage.each(function(){
-                    $(this).data("errorReload","1");
-                })                
+                $unloadimage = $("img[src='../../static/images/file_icon/icon_file/picture_error.png']:lt(10)");
                 $unloadimage.lazyload({
-                    failure_limit: 10,
+                    failure_limit: 1,
                     threshold: 200,
-                    placeholder: G.staticPath + "images/common/loading_circle.gif",
+                    placeholder: "../../static/images/common/loading_circle.gif",
                     skip_invisible: !1,
                     effect: "fadeIn",
                     load: function (a, b) {
                         $(this).removeClass("lazyload-ready")
                     }
                 }).on("error", function () {
-                    var a = $(this).data("errorReload");
-                    if (a) {
-                        if ("1" == a) {
-                            $(this).parent().attr("filetype");
-                            $(this).attr("src", G.staticPath + "images/file_icon/icon_file/picture_error.png"), $(this).data("errorReload", "2")
-                        }
-                    } else $(this).attr("src", $(this).attr("src") + "#" + UUID()), $(this).data("errorReload", "1")
+                    $(this).attr("src", "../../static/images/file_icon/icon_file/picture_error.png")
                 })
-            },5000);
+            },3000);
             template.helper("fileIconMake", fileIconMake);
             var d = template.compile(tpl),
                 e = "",
